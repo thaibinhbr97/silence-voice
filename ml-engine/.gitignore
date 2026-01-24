@@ -4,3 +4,9 @@ data/*
 trained_models/*
 !trained_models/.keep
 __pycache__/
+# Ignore large datasets and heavy models
+data/*
+!data/.keep
+trained_models/*
+!trained_models/.keep
+__pycache__/
