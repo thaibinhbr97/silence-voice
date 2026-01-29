@@ -81,7 +81,7 @@ npm run dev
 2.  Allow camera access when prompted.
 3.  Click **"Start Recognition"** to begin the session.
 4.  **Speak silently** (mouth words without sound) into the camera.
-5.  The raw detection will be processed by the VSR model, then refined by Gemma-3.
+5.  The raw detection will be processed by the VSR model, then refined by Gemini.
 6.  The final text will appear on screen.
 7.  Toggle **"Text-To-Speech On"** to have the system read the text aloud automatically.
 
