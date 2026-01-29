@@ -7,9 +7,8 @@ SilenceVoice leverages state-of-the-art AI to translate visual lip movements int
 ## 🚀 Features
 
 *   **Real-Time Lip Reading**: Translates silent speech instantly using advanced computer vision.
-*   **AI Correction**: Uses **Google Gemma-3-27B** to refine raw phonetic detections into natural, grammatically correct sentences.
+*   **AI Correction**: Uses **Google Gemini** to refine raw phonetic detections into natural, grammatically correct sentences.
 *   **Text-to-Speech**: Built-in functionality to speak the corrected text aloud.
-*   **Privacy-First**: The core VSR model runs locally on your machine.
 *   **Modern UI**: A clean, accessible interface built with Next.js and Tailwind CSS.
 
 ## 🛠️ Technology Stack
@@ -29,8 +28,7 @@ SilenceVoice leverages state-of-the-art AI to translate visual lip movements int
     *   Trained on the [LRS3](https://mmai.io/datasets/lip_reading/) (Lip Reading Sentences 3) dataset.
     *   **Libraries**: `torch`, `torchvision`, `torchaudio`, `mediapipe` (for face tracking), `opencv-python`.
 *   **Large Language Model (LLM)**:
-    *   **Model**: [Google Gemma-3-27B-IT](https://ai.google.dev/gemma)
-    *   **Provider**: Telus PaaS
+    *   **Model**: [Google Gemini](https://ai.google.dev/gemma)
     *   **Role**: Contextual correction and sentence refinement.
 
 ## 📦 Installation
@@ -89,4 +87,4 @@ npm run dev
 
 ## 📄 License
 
-[MIT](LICENSE)
+[MIT](license.txt)
