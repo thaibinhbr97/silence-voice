@@ -1,11 +1,17 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 import sys
 from pathlib import Path
 
-# Add the project root to sys.path so that 'pipelines' and 'chaplin' can be imported
+# Add the project root to sys.path and set it as CWD
 root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
+os.chdir(root_dir)
 
 import asyncio
 import tempfile
@@ -15,10 +21,9 @@ import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from ollama import AsyncClient
 from pydantic import BaseModel
 
-from silencevoice import ChaplinOutput
+from silencevoice import SilenceVoiceOutput
 from pipelines.pipeline import InferencePipeline
 
 
@@ -28,7 +33,33 @@ class TranscriptionResponse(BaseModel):
     list_of_changes: str
 
 
-app = FastAPI(title="SilenceVoice VSR API", version="1.0.0")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load the VSR model at startup to avoid reloading for each request."""
+    global vsr_model
+    
+    config_filename = str(root_dir / "configs" / "LRS3_V_WER19.1.ini")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    
+    print(f"Loading VSR model on {device}...")
+    try:
+        vsr_model = InferencePipeline(
+            config_filename,
+            device=device,
+            detector="mediapipe",
+            face_track=True
+        )
+        print("✅ VSR Model loaded successfully!")
+    except Exception as e:
+        print(f"❌ Failed to load VSR model: {e}")
+        
+    yield
+    # Clean up if needed
+    print("Shutting down...")
+
+app = FastAPI(title="SilenceVoice VSR API", version="1.0.0", lifespan=lifespan)
 
 # CORS middleware to allow frontend access
 app.add_middleware(
@@ -39,77 +70,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
 
 # Global VSR model instance (loaded once at startup)
 vsr_model: Optional[InferencePipeline] = None
-# ollama_client = AsyncClient()
-openai_client = AsyncOpenAI(
-    base_url="https://gemma-3-27b-3ca9s.paas.ai.telus.com/v1",
-    api_key="dc8704d41888afb2b889a8ebac81d12f"
-)
+
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    client = genai.Client(api_key=GEMINI_API_KEY)
+else:
+    print("⚠️ GEMINI_API_KEY not found in environment variables")
+    client = None
 
 
-@app.on_event("startup")
-async def load_model():
-    """Load the VSR model at startup to avoid reloading for each request."""
-    global vsr_model
-    
-    config_filename = str(root_dir / "configs" / "LRS3_V_WER19.1.ini")
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
-    print(f"Loading VSR model on {device}...")
-    vsr_model = InferencePipeline(
-        config_filename,
-        device=device,
-        detector="mediapipe",
-        face_track=True
-    )
-    print("✅ VSR Model loaded successfully!")
 
 
 import json
 
 
-# Define the output model locally to avoid version conflicts with chaplin.py
-class ChaplinOutput(BaseModel):
+# Define the output model locally to avoid version conflicts with silencevoice.py
+class SilenceVoiceOutput(BaseModel):
     list_of_changes: str
     corrected_text: str
 
 import time
 
 async def correct_output_async(output: str) -> dict:
-    """Use Ollama to correct the raw VSR output with manual parsing for robustness."""
+    """Use Gemini to correct the raw VSR output with manual parsing for robustness."""
     print(f"🤖 Starting LLM correction for: '{output}'", flush=True)
     start_time = time.time()
     
     try:
-        # Wrap the OpenAI call with a timeout (e.g., 5 seconds)
+        if not client:
+            raise Exception("Gemini client not configured. Please set GEMINI_API_KEY.")
+
+        prompt = (
+            "You are an assistant that helps make corrections to the output of a lipreading model. "
+            "Return the corrected text in a JSON format with 'list_of_changes' and 'corrected_text' keys. "
+            "Example JSON: {\"list_of_changes\": \"Fixed spelling\", \"corrected_text\": \"Hello world.\"}\n\n"
+            f"Transcription to fix:\n\n{output}"
+        )
+
+        # Wrap the Gemini call with a timeout
         response = await asyncio.wait_for(
-            openai_client.chat.completions.create(
-                model='google/gemma-3-27b-it',
-                messages=[
-                    {
-                        'role': 'system',
-                        'content': (
-                            "You are an assistant that helps make corrections to the output of a lipreading model. "
-                            "Return the corrected text in a JSON format with 'list_of_changes' and 'corrected_text' keys. "
-                            "Example JSON: {\"list_of_changes\": \"Fixed spelling\", \"corrected_text\": \"Hello world.\"}"
-                        )
-                    },
-                    {
-                        'role': 'user',
-                        'content': f"Transcription to fix:\n\n{output}"
-                    }
-                ],
-                response_format={"type": "json_object"},
-                max_tokens=150
+            asyncio.to_thread(
+                client.models.generate_content,
+                model='gemini-1.5-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=150,
+                    response_mime_type="application/json",
+                )
             ),
-            timeout=5.0
+            timeout=10.0
         )
         
         # Parse the content
-        content = response.choices[0].message.content
+        content = response.text
         data = json.loads(content)
         
         corrected_text = data.get('corrected_text', output.capitalize()).strip()

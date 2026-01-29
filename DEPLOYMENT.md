@@ -15,6 +15,7 @@ The frontend is optimized for Vercel.
 3.  **Environment Variables:**
     *   `NEXT_PUBLIC_API_URL`: The URL of your deployed backend (e.g., `https://your-backend.modal.run` or an ngrok URL for testing).
     *   `ELEVENLABS_API_KEY`: Your API key for Text-to-Speech.
+    *   `GEMINI_API_KEY`: Your Google Gemini API key for assistant reasoning.
 4.  **Deploy:** The build should now succeed.
 
 ---

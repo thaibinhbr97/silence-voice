@@ -8,6 +8,7 @@ mediapipe==0.10.20
 torch
 torchvision
 torchaudio
-ollama
 pydantic
 pynput
+google-genai>=0.1.0
+python-dotenv>=0.19.0

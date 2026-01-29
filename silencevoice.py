@@ -4,17 +4,22 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
-from ollama import AsyncClient
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
 from pydantic import BaseModel
 from pynput import keyboard
 
+# Load environment variables
+load_dotenv()
 
-class ChaplinOutput(BaseModel):
+
+class SilenceVoiceOutput(BaseModel):
     list_of_changes: str
     corrected_text: str
 
 
-class Chaplin:
+class SilenceVoice:
     def __init__(self):
         self.vsr_model = None
 
@@ -34,8 +39,13 @@ class Chaplin:
         # setup keyboard controller for typing
         self.kbd_controller = keyboard.Controller()
 
-        # setup async ollama client
-        self.ollama_client = AsyncClient()
+        # setup Gemini client
+        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        if GEMINI_API_KEY:
+            self.client = genai.Client(api_key=GEMINI_API_KEY)
+        else:
+            print("⚠️ GEMINI_API_KEY not found in environment variables")
+            self.client = None
 
         # setup asyncio event loop in background thread
         self.loop = asyncio.new_event_loop()
@@ -74,25 +84,43 @@ class Chaplin:
         self.recording = not self.recording
 
     async def correct_output_async(self, output, sequence_num):
-        # perform inference on the raw output to get back a "correct" version
-        response = await self.ollama_client.chat(
-            model='qwen3:4b',
-            messages=[
-                {
-                    'role': 'system',
-                    'content': f"You are an assistant that helps make corrections to the output of a lipreading model. The text you will receive was transcribed using a video-to-text system that attempts to lipread the subject speaking in the video, so the text will likely be imperfect. The input text will also be in all-caps, although your respose should be capitalized correctly and should NOT be in all-caps.\n\nIf something seems unusual, assume it was mistranscribed. Do your best to infer the words actually spoken, and make changes to the mistranscriptions in your response. Do not add more words or content, just change the ones that seem to be out of place (and, therefore, mistranscribed). Do not change even the wording of sentences, just individual words that look nonsensical in the context of all of the other words in the sentence.\n\nAlso, add correct punctuation to the entire text. ALWAYS end each sentence with the appropriate sentence ending: '.', '?', or '!'. \n\nReturn the corrected text in the format of 'list_of_changes' and 'corrected_text'."
-                },
-                {
-                    'role': 'user',
-                    'content': f"Transcription:\n\n{output}"
-                }
-            ],
-            format=ChaplinOutput.model_json_schema()
+        if not self.client:
+            print("⚠️ Gemini client not configured. Skipping correction.")
+            return output
+
+        prompt = (
+            "You are an assistant that helps make corrections to the output of a lipreading model. "
+            "The text you will receive was transcribed using a video-to-text system that attempts to lipread the subject speaking in the video, so the text will likely be imperfect. "
+            "The input text will also be in all-caps, although your response should be capitalized correctly and should NOT be in all-caps.\n\n"
+            "If something seems unusual, assume it was mistranscribed. Do your best to infer the words actually spoken, and make changes to the mistranscriptions in your response. "
+            "Do not add more words or content, just change the ones that seem to be out of place. "
+            "Do not change the wording of sentences, just individual words that look nonsensical in the context of the sentence.\n\n"
+            "Also, add correct punctuation. ALWAYS end each sentence with '.', '?', or '!'.\n\n"
+            "Return the corrected text in JSON format with 'list_of_changes' and 'corrected_text'.\n\n"
+            f"Transcription:\n\n{output}"
         )
 
-        # get only the corrected text
-        chat_output = ChaplinOutput.model_validate_json(
-            response['message']['content'])
+        try:
+            # Run Gemini generation in a thread to avoid blocking the event loop
+            response = await asyncio.to_thread(
+                self.client.models.generate_content,
+                model='gemini-1.5-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=150,
+                    response_mime_type="application/json",
+                )
+            )
+
+            # Parse the content
+            data = json.loads(response.text)
+            chat_output = SilenceVoiceOutput(**data)
+        except Exception as e:
+            print(f"⚠️ Gemini correction failed: {e}")
+            chat_output = SilenceVoiceOutput(
+                list_of_changes="Error during correction",
+                corrected_text=output.capitalize()
+            )
 
         # if last character isn't a sentence ending (happens sometimes), add a period
         chat_output.corrected_text = chat_output.corrected_text.strip()
@@ -224,7 +252,7 @@ class Chaplin:
                         frame_count = 0
 
                     # display the frame in the window
-                    cv2.imshow('Chaplin', cv2.flip(compressed_frame, 1))
+                    cv2.imshow('SilenceVoice', cv2.flip(compressed_frame, 1))
 
             # ensures that videos are handled in the order they were recorded
             for fut in futures:
