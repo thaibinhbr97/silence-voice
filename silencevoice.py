@@ -113,7 +113,18 @@ class SilenceVoice:
             )
 
             # Parse the content
-            data = json.loads(response.text)
+            content = response.text
+            if not content:
+                raise ValueError("Empty response from Gemini")
+                
+            # Clean markdown if present
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+                
+            data = json.loads(content)
             chat_output = SilenceVoiceOutput(**data)
         except Exception as e:
             print(f"⚠️ Gemini correction failed: {e}")

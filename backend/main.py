@@ -61,6 +61,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SilenceVoice VSR API", version="1.0.0", lifespan=lifespan)
 
+@app.get("/")
+async def root():
+    """Root endpoint to verify backend is running."""
+    return {"message": "SilenceVoice VSR API is running", "status": "healthy"}
+
 # CORS middleware to allow frontend access
 app.add_middleware(
     CORSMiddleware,
@@ -129,6 +134,19 @@ async def correct_output_async(output: str) -> dict:
         
         # Parse the content
         content = response.text
+        if not content:
+            print("⚠️ LLM returned empty response", flush=True)
+            raise ValueError("Empty response from LLM")
+            
+        print(f"DEBUG: LLM Response: {content}", flush=True)
+        
+        # Clean markdown if present
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+            
         data = json.loads(content)
         
         corrected_text = data.get('corrected_text', output.capitalize()).strip()
