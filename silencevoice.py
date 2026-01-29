@@ -104,7 +104,7 @@ class SilenceVoice:
             # Run Gemini generation in a thread to avoid blocking the event loop
             response = await asyncio.to_thread(
                 self.client.models.generate_content,
-                model='gemini-1.5-flash',
+                model='gemini-3-flash-preview',
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     max_output_tokens=150,

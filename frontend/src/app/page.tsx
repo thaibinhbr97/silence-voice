@@ -167,7 +167,7 @@ export default function Home() {
                                     className={`
                                         flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all
                                         ${isAutoSpeakEnabled
-                                            ? 'bg-[var(--accent-gold)] text-[var(--bg-obsidian)] shadow-lg'
+                                            ? 'bg-[var(--accent-gold)] text-white shadow-lg'
                                             : 'bg-[var(--bg-obsidian)]/5 text-[var(--text-secondary)] hover:bg-[var(--bg-obsidian)]/10'}
                                     `}
                                 >

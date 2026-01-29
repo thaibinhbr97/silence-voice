@@ -117,7 +117,7 @@ async def correct_output_async(output: str) -> dict:
         response = await asyncio.wait_for(
             asyncio.to_thread(
                 client.models.generate_content,
-                model='gemini-1.5-flash',
+                model='gemini-3-flash-preview',
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     max_output_tokens=150,
