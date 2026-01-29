@@ -40,7 +40,7 @@ SilenceVoice leverages state-of-the-art AI to translate visual lip movements int
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/silencevoice.git
+git clone https://github.com/thaibinhbr97/silencevoice.git
 cd silencevoice
 ```
 
