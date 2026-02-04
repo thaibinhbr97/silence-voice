@@ -10,7 +10,6 @@ SilenceVoice leverages state-of-the-art AI to translate visual lip movements int
 
 [![Silence Voice Demo](https://i9.ytimg.com/vi/VmKOg3GOkoQ/mq1.jpg?sqp=CKDQiswG&rs=AOn4CLB5Bz81FVjMy981dTmFVUgsiZM81Q)](https://youtu.be/VmKOg3GOkoQ)     
 
-https://youtu.be/VmKOg3GOkoQ
 ## 🚀 Features
 
 *   **Real-Time Lip Reading**: Translates silent speech instantly using advanced computer vision.
