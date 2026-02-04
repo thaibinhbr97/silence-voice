@@ -1,5 +1,7 @@
 # SilenceVoice
 
+[**🚀 Live Demo**](https://silence-voice.vercel.app/)
+
 A visual speech recognition (VSR) tool that reads your lips in real-time and types whatever you silently mouth.
 
 SilenceVoice leverages state-of-the-art AI to translate visual lip movements into text, making communication accessible for mute individuals or for silent dictation in quiet environments.
