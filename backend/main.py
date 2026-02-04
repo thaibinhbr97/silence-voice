@@ -129,7 +129,7 @@ async def correct_output_async(output: str) -> dict:
                     response_mime_type="application/json",
                 )
             ),
-            timeout=10.0
+            timeout=0.5
         )
         
         # Parse the content
