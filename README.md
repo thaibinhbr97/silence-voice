@@ -8,7 +8,7 @@ SilenceVoice leverages state-of-the-art AI to translate visual lip movements int
 
 ## 🎥 Video Demo
 
-[![Silence Voice Demo](https://i9.ytimg.com/vi/VmKOg3GOkoQ/mq1.jpg?sqp=CKiBkMwG&rs=AOn4CLD2LGP2cm-dVB-1MRHp7CIgnxLJuA)](https://youtu.be/VmKOg3GOkoQ)     
+[![Silence Voice Demo](https://youtu.be/VmKOg3GOkoQ)     
 
 ## 🚀 Features
 
